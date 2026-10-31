@@ -8,6 +8,122 @@ import subprocess
 import sys
 
 
+PACKAGE_MANAGERS = {
+    "apt": {
+        "executable": "apt-get",
+        "packages": [
+            "python3-venv",
+            "python3-wxgtk4.0",
+            "python3-termcolor",
+            "p7zip-full",
+            "grub2-common",
+            "grub-pc-bin",
+            "parted",
+            "dosfstools",
+            "ntfs-3g",
+        ],
+        "commands": [(["update"], False), (["install", "-y", "--"], True)],
+    },
+    "dnf": {
+        "executable": "dnf",
+        "packages": [
+            "python3",
+            "python3-pip",
+            "python3-wxpython4",
+            "python3-termcolor",
+            "p7zip",
+            "p7zip-plugins",
+            "grub2-tools",
+            "grub2-tools-extra",
+            "parted",
+            "dosfstools",
+            "ntfs-3g",
+        ],
+        "commands": [(["install", "-y", "--"], True)],
+    },
+    "yum": {
+        "executable": "yum",
+        "packages": [
+            "python3",
+            "python3-pip",
+            "python3-wxpython4",
+            "python3-termcolor",
+            "p7zip",
+            "p7zip-plugins",
+            "grub2-tools",
+            "grub2-tools-extra",
+            "parted",
+            "dosfstools",
+            "ntfs-3g",
+        ],
+        "commands": [(["install", "-y", "--"], True)],
+    },
+    "pacman": {
+        "executable": "pacman",
+        "packages": [
+            "python",
+            "python-pip",
+            "python-wxpython",
+            "python-termcolor",
+            "7zip",
+            "grub",
+            "parted",
+            "dosfstools",
+            "ntfs-3g",
+        ],
+        "commands": [(["-S", "--needed", "--noconfirm", "--"], True)],
+    },
+    "zypper": {
+        "executable": "zypper",
+        "packages": [
+            "python3",
+            "python3-pip",
+            "python3-wxPython",
+            "python3-termcolor",
+            "p7zip",
+            "grub2",
+            "parted",
+            "dosfstools",
+            "ntfs-3g",
+        ],
+        "commands": [
+            (["--non-interactive", "refresh"], False),
+            (["install", "--non-interactive", "--"], True),
+        ],
+    },
+    "apk": {
+        "executable": "apk",
+        "packages": [
+            "python3",
+            "py3-pip",
+            "py3-wxpython",
+            "py3-termcolor",
+            "p7zip",
+            "grub",
+            "parted",
+            "dosfstools",
+            "ntfs-3g",
+        ],
+        "commands": [(["add", "--no-cache", "--"], True)],
+    },
+    "xbps-install": {
+        "executable": "xbps-install",
+        "packages": [
+            "python3",
+            "python3-pip",
+            "python3-wxPython",
+            "python3-termcolor",
+            "p7zip",
+            "grub",
+            "parted",
+            "dosfstools",
+            "ntfs-3g",
+        ],
+        "commands": [(["-S", "-y", "--"], True)],
+    },
+}
+
+
 def fail(message):
     print(message, file=sys.stderr, flush=True)
     raise SystemExit(1)
@@ -241,25 +357,25 @@ def install_woeusb_dependencies():
     if os.geteuid() != 0:
         fail("Установка системных зависимостей требует прав администратора.")
 
-    apt_get = shutil.which("apt-get")
-    if not apt_get:
-        fail("Не найдена команда apt-get. Эта автоматическая установка рассчитана на Debian/antiX.")
+    manager = None
+    for name, config in PACKAGE_MANAGERS.items():
+        executable = shutil.which(config["executable"])
+        if executable:
+            manager = name, executable, config
+            break
+    if not manager:
+        supported = ", ".join(PACKAGE_MANAGERS)
+        fail(
+            "Не найден поддерживаемый пакетный менеджер. "
+            f"Поддерживаются: {supported}."
+        )
 
-    packages = [
-        "python3-venv",
-        "python3-wxgtk4.0",
-        "python3-termcolor",
-        "p7zip-full",
-        "grub2-common",
-        "grub-pc-bin",
-        "parted",
-        "dosfstools",
-        "ntfs-3g",
-    ]
-    for command in (
-        [apt_get, "update"],
-        [apt_get, "install", "-y", "--", *packages],
-    ):
+    manager_name, executable, config = manager
+    print(f"Пакетный менеджер: {manager_name}", flush=True)
+    for step, include_packages in config["commands"]:
+        command = [executable, *step]
+        if include_packages:
+            command.extend(config["packages"])
         print(f"Запускаю: {' '.join(command)}", flush=True)
         try:
             process = subprocess.Popen(
@@ -276,9 +392,9 @@ def install_woeusb_dependencies():
                 sys.stdout.buffer.flush()
             return_code = process.wait()
         except OSError as error:
-            fail(f"Не удалось запустить apt-get: {error}")
+            fail(f"Не удалось запустить {manager_name}: {error}")
         if return_code:
-            fail(f"apt-get завершился с кодом {return_code}.")
+            fail(f"{manager_name} завершился с кодом {return_code}.")
 
     print("Системные зависимости установлены.", flush=True)
 
