@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0b1020">
+    <title>USB Image Writer</title>
+    <link rel="stylesheet" href="/assets/app.css">
+    <script defer src="/__SESSION_TOKEN__/assets/app.js"></script>
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="USB Image Writer">
+          <span class="brand-mark">
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+              <path d="M16 4v17m0-17 5 5m-5-5-5 5M16 15l-7 7m7-1 7 3M9 22H5v5h5v-5Zm14 2 3-3v6l-3-3Zm-7-3a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/>
+            </svg>
+          </span>
+          <span><strong>USB Writer</strong><small>ЗАПИСЬ ОБРАЗОВ</small></span>
+        </a>
+        <div class="topbar-right">
+          <span class="local-badge"><i></i> Только на этом компьютере</span>
+          <button class="icon-button" id="refreshButton" type="button" aria-label="Обновить список накопителей" title="Обновить список накопителей">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 0 0-14-5L4 9M4 17v-5h5M4 12a8 8 0 0 0 14 5l2-2"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <section class="hero">
+        <div class="hero-copy">
+          <h1>Запись образа</h1>
+          <p class="hero-description">Выберите образ и накопитель.</p>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
+          <div class="hero-usb">
+            <div class="usb-cap"></div><div class="usb-body"><div class="usb-light"></div><div class="usb-groove"></div></div>
+            <div class="usb-connector"><i></i><i></i></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="status-banner" id="statusBanner">
+        <span class="status-indicator"></span>
+        <span id="statusText">Подключаюсь к движку…</span>
+        <span class="status-spacer"></span>
+        <span class="engine-label"><span class="engine-dot"></span> LOCAL ENGINE</span>
+      </div>
+
+      <section class="workspace">
+        <div class="section-heading">
+          <div><p class="eyebrow">01 — ИСТОЧНИК</p><h2>Выбери образ</h2></div>
+          <span class="section-hint">ISO · IMG · BIN · RAW</span>
+        </div>
+        <div class="source-grid">
+          <label class="upload-card" for="imageFile">
+            <input id="imageFile" type="file" accept=".iso,.img,.bin,.raw,.dsk">
+            <span class="upload-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 15v4h14v-4"/></svg>
+            </span>
+            <span class="upload-copy"><strong>Открыть файл</strong><small>Перетащи сюда или выбери на компьютере</small></span>
+            <span class="upload-arrow">↗</span>
+          </label>
+          <div class="source-divider"><span>или</span></div>
+          <form id="pathForm" class="path-form">
+            <label for="imagePath">Файл уже на диске?</label>
+            <div class="path-control">
+              <input id="imagePath" type="text" placeholder="/home/user/Загрузки/system.iso" autocomplete="off">
+              <button type="submit" class="path-submit" aria-label="Использовать путь">→</button>
+            </div>
+            <small>Укажи полный путь — копировать файл не потребуется</small>
+          </form>
+        </div>
+        <div id="uploadProgress" class="upload-progress" hidden>
+          <div class="upload-progress-copy"><span id="uploadName">Загрузка образа</span><span id="uploadPercent">0%</span></div>
+          <div class="progress-track"><span id="uploadProgressBar"></span></div>
+        </div>
+        <div class="selected-image empty" id="selectedImage">
+          <span class="file-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l5 5v13H6zM14 3v6h5M9 14h7m-7 4h7"/></svg></span>
+          <span class="file-details"><strong id="imageName">Образ не выбран</strong><small id="imageMeta">Выбери файл или укажи путь к нему</small></span>
+          <span class="file-state" id="imageState">ОЖИДАНИЕ</span>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="section-heading">
+          <div><p class="eyebrow">02 — НАКОПИТЕЛЬ</p><h2>Куда записываем?</h2></div>
+          <span class="section-hint" id="diskCount">ПОИСК USB</span>
+        </div>
+        <div class="disk-list" id="diskList">
+          <div class="empty-disks"><span class="spinner"></span><span>Ищем USB-накопители…</span></div>
+        </div>
+        <div class="disk-error" id="diskError" hidden></div>
+      </section>
+
+      <section class="workspace mode-workspace">
+        <div class="section-heading">
+          <div><p class="eyebrow">03 — СПОСОБ</p><h2>Как записываем?</h2></div>
+        </div>
+        <div class="mode-grid">
+          <label class="mode-card selected" id="rawModeCard">
+            <input type="radio" name="mode" value="raw" checked>
+            <span class="mode-symbol raw-symbol"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span>
+            <span class="mode-copy"><strong>Обычный образ</strong><small>Linux, live-системы и другие IMG/ISO</small></span>
+            <span class="radio-mark"></span>
+          </label>
+          <label class="mode-card" id="windowsModeCard">
+            <input type="radio" name="mode" value="windows">
+            <span class="mode-symbol windows-symbol"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.2 10.5 4v7H3zm8.5-1.4L21 2v9h-9.5zM3 13h7.5v7L3 18.8zm8.5 0H21v9l-9.5-1.8z"/></svg></span>
+            <span class="mode-copy"><strong>Установщик Windows</strong><small>Создание загрузочной флешки через WoeUSB-ng</small></span>
+            <span class="radio-mark"></span>
+          </label>
+        </div>
+        <div class="woeusb-status" id="woeusbStatus">
+          <span class="woeusb-dot"></span><span id="woeusbStatusText">Проверяем WoeUSB-ng…</span>
+          <div class="woeusb-actions">
+            <button type="button" class="text-button" id="checkWoeusbButton">Проверить</button>
+            <button type="button" class="text-button" id="installWoeusbButton">Установить WoeUSB</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="safety-card">
+        <span class="safety-icon">!</span>
+        <div><strong>Внимание: данные будут стёрты</strong><p>Перед записью проверь модель и размер флешки. Все файлы на выбранном USB-накопителе будут удалены.</p></div>
+      </section>
+
+      <div class="action-row">
+        <button type="button" class="secondary-button" id="unmountButton" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 7V4h10v3m-9 0 1 13h6l1-13"/></svg>
+          Размонтировать
+        </button>
+        <button type="button" class="write-button" id="writeButton" disabled>
+          <span>Записать образ</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+        </button>
+      </div>
+
+      <section class="activity-card" id="activityCard" hidden>
+        <div class="activity-top"><span class="activity-pulse"></span><span id="activityText">Подготовка…</span><span class="activity-percent" id="activityPercent"></span></div>
+        <div class="progress-track activity-track"><span id="activityProgress"></span></div>
+        <p>Не отключай накопитель до завершения операции</p>
+      </section>
+
+      <section class="log-section" id="logSection">
+        <button class="log-toggle" type="button" id="logToggle" aria-expanded="false">
+          <span class="log-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 10h16M4 15h10M4 20h7"/></svg> Журнал операций <span class="log-count" id="logCount">0</span></span>
+          <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="log-panel" id="logPanel" aria-hidden="true">
+          <div class="log-toolbar"><span>ВЫВОД ДВИЖКА</span><button type="button" id="clearLogButton">Очистить</button></div>
+          <div class="log-output" id="logOutput"><p class="log-placeholder">Здесь появится ход операций</p></div>
+        </div>
+      </section>
+
+      <footer><span>FLASHFORGE <b>·</b> ЛОКАЛЬНАЯ ЗАПИСЬ ОБРАЗОВ</span><span>ТВОИ ДАННЫЕ НЕ ПОКИДАЮТ ЭТОТ КОМПЬЮТЕР</span></footer>
+    </main>
+
+    <dialog id="actionDialog" class="action-dialog">
+      <form method="dialog" id="actionForm">
+        <button class="dialog-close" type="button" id="dialogClose" aria-label="Закрыть">×</button>
+        <p class="eyebrow" id="dialogEyebrow">ПОДТВЕРЖДЕНИЕ</p>
+        <h2 id="dialogTitle">Подтверди действие</h2>
+        <p class="dialog-description" id="dialogDescription"></p>
+        <div class="dialog-device" id="dialogDevice" hidden></div>
+        <label class="confirm-check" id="confirmRow"><input id="confirmCheck" type="checkbox"><span>Я понимаю последствия этого действия</span></label>
+        <label class="password-label" for="sudoPassword" id="passwordRow">Пароль sudo</label>
+        <input id="sudoPassword" class="password-input" type="password" autocomplete="current-password" placeholder="Введите пароль администратора">
+        <p class="password-hint" id="passwordHint">Пароль используется только для этой операции и не сохраняется.</p>
+        <div class="dialog-actions">
+          <button class="secondary-button" type="button" id="dialogCancel">Отмена</button>
+          <button class="write-button dialog-submit" type="submit" id="dialogSubmit">Продолжить <span>→</span></button>
+        </div>
+      </form>
+    </dialog>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
